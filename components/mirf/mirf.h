@@ -202,5 +202,9 @@ uint8_t   Nrf24_getCRCLength(NRF24_t * dev);
 uint8_t   Nrf24_getPALevel(NRF24_t * dev);
 uint8_t   Nrf24_getRetransmitDelay(NRF24_t * dev);
 
+esp_err_t Nrf24_setPALevel(NRF24_t * dev, uint8_t level);
+void Nrf24_setAutoACK(NRF24_t * dev, bool enable);
+void Nrf24_setCRCLength(NRF24_t * dev, rf24_crclength_e length);
+
 #endif /* MAIN_MIRF_H_ */
 

@@ -583,3 +583,45 @@ uint8_t Nrf24_getRetransmitDelay(NRF24_t * dev)
 	Nrf24_readRegister(dev, SETUP_RETR, &value, 1);
 	return (value >> 4);
 }
+
+esp_err_t Nrf24_setPALevel(NRF24_t * dev, uint8_t level) {
+	esp_err_t ret = ESP_OK;
+	uint8_t setup;
+	Nrf24_readRegister(dev, RF_SETUP, &setup, sizeof(setup));
+	//printf("RF_SETUP=%x\n",setup);
+	setup = (setup & ~(_BV(RF_PWR_LOW) | _BV(RF_PWR_HIGH))) | ((level << 1) & (_BV(RF_PWR_LOW) | _BV(RF_PWR_HIGH)));
+	Nrf24_writeRegister(dev, RF_SETUP, &setup, sizeof(setup));
+	uint8_t setup2;
+	Nrf24_readRegister(dev, RF_SETUP, &setup2, sizeof(setup2));
+	if (setup != setup2) ret = ESP_FAIL;
+	return ret;
+}
+
+void Nrf24_setAutoACK(NRF24_t * dev, bool enable) {
+	if (enable) {
+		Nrf24_configRegister(dev, EN_AA, 0x3F);
+	}
+	else {
+		Nrf24_configRegister(dev, EN_AA, 0x00);
+		// accommodate ACK payloads feature
+		// if (ack_payloads_enabled) {
+		// 	disableAckPayload();
+		// }
+	}
+}
+
+void Nrf24_setCRCLength(NRF24_t *dev, rf24_crclength_e length) {
+	uint8_t config_reg;
+	Nrf24_readRegister(dev, CONFIG, &config_reg, sizeof(config_reg));
+    config_reg = (config_reg & ~(_BV(CRCO) | _BV(EN_CRC)));
+
+    if (length == RF24_CRC_DISABLED) {
+        // Do nothing, we turned it off above.
+    } else if (length == RF24_CRC_8) {
+        config_reg |= _BV(EN_CRC);
+    } else {
+        config_reg |= _BV(EN_CRC);
+        config_reg |= _BV(CRCO);
+    }
+    Nrf24_writeRegister(dev, CONFIG, &(config_reg), sizeof(config_reg));
+}

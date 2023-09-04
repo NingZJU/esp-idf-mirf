@@ -12,6 +12,7 @@
 #include <string.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "driver/gpio.h"
 #include "esp_log.h"
 
 #include "mirf.h"
@@ -45,12 +46,15 @@ void receiver(void *pvParameters)
 	ESP_LOGI(pcTaskGetName(0), "Start");
 	NRF24_t dev;
 	Nrf24_init(&dev);
-	uint8_t payload = 32;
+	uint8_t payload = 25;
 	uint8_t channel = CONFIG_RADIO_CHANNEL;
 	Nrf24_config(&dev, channel, payload);
+	Nrf24_setAutoACK(&dev, false);
+	Nrf24_setPALevel(&dev, RF24_PA_HIGH);
+	Nrf24_setCRCLength(&dev, RF24_CRC_16);
 
 	//Set own address using 5 characters
-	esp_err_t ret = Nrf24_setRADDR(&dev, (uint8_t *)"FGHIJ");
+	esp_err_t ret = Nrf24_setRADDR(&dev, addr_tr);
 	if (ret != ESP_OK) {
 		ESP_LOGE(pcTaskGetName(0), "nrf24l01 not installed");
 		while(1) { vTaskDelay(1); }
@@ -64,7 +68,7 @@ void receiver(void *pvParameters)
 	Nrf24_printDetails(&dev);
 	ESP_LOGI(pcTaskGetName(0), "Listening...");
 
-	uint8_t buf[32];
+	uint8_t buf[25];
 
 	// Clear RX FiFo
 	while(1) {
@@ -91,12 +95,14 @@ void sender(void *pvParameters)
 	ESP_LOGI(pcTaskGetName(0), "Start");
 	NRF24_t dev;
 	Nrf24_init(&dev);
-	uint8_t payload = 32;
+	uint8_t payload = 25;
 	uint8_t channel = CONFIG_RADIO_CHANNEL;
 	Nrf24_config(&dev, channel, payload);
+	Nrf24_setAutoACK(&dev, false);
+	Nrf24_setPALevel(&dev, RF24_PA_HIGH);
 
 	//Set the receiver address using 5 characters
-	esp_err_t ret = Nrf24_setTADDR(&dev, (uint8_t *)"FGHIJ");
+	esp_err_t ret = Nrf24_setTADDR(&dev, addr_tr);
 	if (ret != ESP_OK) {
 		ESP_LOGE(pcTaskGetName(0), "nrf24l01 not installed");
 		while(1) { vTaskDelay(1); }
@@ -109,7 +115,7 @@ void sender(void *pvParameters)
 	//Print settings
 	Nrf24_printDetails(&dev);
 
-	uint8_t buf[32];
+	uint8_t buf[25];
 	while(1) {
 		TickType_t nowTick = xTaskGetTickCount();
 		sprintf((char *)buf, "Hello World %"PRIu32, nowTick);
@@ -129,6 +135,10 @@ void sender(void *pvParameters)
 
 void app_main(void)
 {
+    gpio_set_direction(GPIO_NUM_47, GPIO_MODE_OUTPUT);
+	gpio_set_direction(GPIO_NUM_48, GPIO_MODE_OUTPUT);
+    gpio_set_level(GPIO_NUM_47, 1);
+    gpio_set_level(GPIO_NUM_48, 0);
 #if CONFIG_RECEIVER
 	xTaskCreate(&receiver, "RECEIVER", 1024*3, NULL, 2, NULL);
 #endif
